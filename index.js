@@ -1,13 +1,15 @@
 const express = require('express');
 const morgan = require('morgan');
-
 const unknownEndpoint = (request, response) => {
   response.status(404).send({ error: 'unknown endpoint' })
 }
 
 const app = express();
+
 app.use(express.json());
-app.use(morgan('tiny'));
+
+morgan.token('data', (req, res) => JSON.stringify(req.body));
+app.use(morgan(':method :url :status :res[content-length] - :response-time ms :data'));
 
 const generateId = () => {
   return Math.round(Math.random() * 1000000000000);
