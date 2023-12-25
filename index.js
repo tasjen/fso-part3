@@ -1,15 +1,16 @@
 const express = require('express');
 const morgan = require('morgan');
-const unknownEndpoint = (request, response) => {
-  response.status(404).send({ error: 'unknown endpoint' })
-}
+const cors = require('cors');
 
 const app = express();
 
+app.use(cors());
 app.use(express.json());
 
 morgan.token('data', (req, res) => JSON.stringify(req.body));
-app.use(morgan(':method :url :status :res[content-length] - :response-time ms :data'));
+app.use(
+  morgan(':method :url :status :res[content-length] - :response-time ms :data')
+);
 
 const generateId = () => {
   return Math.round(Math.random() * 1000000000000);
@@ -63,7 +64,7 @@ app.delete('/api/persons/:id', (req, res) => {
   const deletedPerson = persons.find((e) => e.id === id);
   if (deletedPerson) {
     persons = persons.filter((e) => e !== deletedPerson);
-    res.status(204);
+    res.status(204).json(deletedPerson);
   } else {
     res.status(404).json({ message: 'id Not found' });
   }
@@ -72,8 +73,10 @@ app.delete('/api/persons/:id', (req, res) => {
 app.post('/api/persons', (req, res) => {
   if (!req.body.name || !req.body.number) {
     return res.status(400).json({ error: 'name or number missing' });
-  } else if (persons.find(e => e.name === req.body.name)) {
-    return res.status(400).json({ error: 'name already exists in the phonebook'});
+  } else if (persons.find((e) => e.name === req.body.name)) {
+    return res
+      .status(400)
+      .json({ error: 'name already exists in the phonebook' });
   } else {
     const newPerson = {
       id: generateId(),
@@ -85,7 +88,9 @@ app.post('/api/persons', (req, res) => {
   }
 });
 
-app.use(unknownEndpoint)
+app.use((req, res) => {
+  res.status(404).send({ error: 'unknown endpoint' });
+});
 
-const PORT = 3001;
-app.listen(PORT, () => console.log('Server running...'));
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
