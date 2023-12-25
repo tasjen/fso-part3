@@ -3,6 +3,10 @@ const express = require('express');
 const app = express();
 app.use(express.json());
 
+const generateId = () => {
+  return Math.round(Math.random() * 1000000000000);
+};
+
 let persons = [
   {
     id: 1,
@@ -39,23 +43,37 @@ app.get('/info', (req, res) => {
 
 app.get('/api/persons/:id', (req, res) => {
   const id = Number(req.params.id);
-  if (persons.find(e => e.id === id)){
+  if (persons.find((e) => e.id === id)) {
     res.status(200).json(persons[req.params.id - 1]);
   } else {
-    res.status(404).json({message: 'id Not found'});
+    res.status(404).json({ message: 'id Not found' });
   }
-})
+});
 
 app.delete('/api/persons/:id', (req, res) => {
   const id = Number(req.params.id);
-  const deletedPerson = persons.find(e => e.id === id);
-  if (deletedPerson){
-    persons = persons.filter(e => e !== deletedPerson);
+  const deletedPerson = persons.find((e) => e.id === id);
+  if (deletedPerson) {
+    persons = persons.filter((e) => e !== deletedPerson);
     res.status(204);
   } else {
-    res.status(404).json({message: 'id Not found'});
+    res.status(404).json({ message: 'id Not found' });
   }
-})
+});
+
+app.post('/api/persons', (req, res) => {
+  if (!req.body.name || !req.body.number) {
+    return res.status(400).json({ error: 'name or number missing' });
+  } else {
+    const newPerson = {
+      id: generateId(),
+      name: req.body.name,
+      number: req.body.number,
+    };
+    persons = [...persons, newPerson];
+    res.json(newPerson);
+  }
+});
 
 const PORT = 3001;
 app.listen(PORT, () => console.log('Server running...'));
