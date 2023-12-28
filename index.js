@@ -1,7 +1,13 @@
+/* eslint-disable no-unused-vars */
+/* eslint-disable prefer-destructuring */
+/* eslint-disable consistent-return */
+/* eslint-disable no-console */
+/* eslint-disable no-else-return */
 require('dotenv').config();
 const express = require('express');
 const morgan = require('morgan');
 const cors = require('cors');
+
 const app = express();
 const Person = require('./models/person');
 
