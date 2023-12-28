@@ -17,69 +17,82 @@ app.use(
   morgan(':method :url :status :res[content-length] - :response-time ms :data')
 );
 
-app.get('/api/persons', (req, res) => {
-  Person.find({}).then((persons) => {
+app.get('/api/persons', async (req, res, next) => {
+  try {
+    const persons = await Person.find({});
     if (persons) {
       res.json(persons);
     } else {
       res.status(404).end();
     }
-  });
+  } catch (err) {
+    next(err);
+  }
 });
 
-app.get('/info', (req, res) => {
-  Person.find({}).then((persons) => {
+app.get('/info', async (req, res, next) => {
+  try {
+    const persons = await Person.find({});
     res.send(
       `<p>Phonebook has info for ${persons.length} people<br/>
       ${new Date().toString()}</p>`
     );
-  });
-});
-
-app.get('/api/persons/:id', (req, res, next) => {
-  Person.findById(req.params.id)
-    .then((person) => {
-      if (person) {
-        res.json(person);
-      } else {
-        res.status(404).json({ error: 'not found' });
-      }
-    })
-    .catch((err) => next(err));
-});
-
-app.delete('/api/persons/:id', (req, res, next) => {
-  Person.findByIdAndDelete(req.params.id)
-    .then((result) => res.status(204).end())
-    .catch((err) => next(err));
-});
-
-app.post('/api/persons', async (req, res) => {
-  if (!req.body.name || !req.body.number) {
-    return res.status(400).json({ error: 'name or number missing' });
+  } catch (err) {
+    next(err);
   }
-
-  // prevent adding duplicated name
-  const persons = await Person.find({});
-  if (persons.find((e) => e.name === req.body.name)) {
-    return res.status(400).json({ error: 'bad request' });
-  }
-
-  const newPerson = new Person({
-    name: req.body.name,
-    number: req.body.number,
-  });
-  newPerson.save().then((savedPerson) => res.json(savedPerson));
 });
 
-app.put('/api/persons/:id', (req, res, next) => {
-  const person = {
-    name: req.body.name,
-    number: req.body.number,
-  };
-  Person.findByIdAndUpdate(req.params.id, person, { new: true })
-    .then((updatedPerson) => res.json(updatedPerson))
-    .catch((err) => next(err));
+app.get('/api/persons/:id', async (req, res, next) => {
+  try {
+    const person = await Person.findById(req.params.id);
+    if (person) {
+      res.json(person);
+    } else {
+      res.status(404).end();
+    }
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.delete('/api/persons/:id', async (req, res, next) => {
+  try {
+    await Person.findByIdAndDelete(req.params.id);
+    res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.post('/api/persons', async (req, res, next) => {
+  try {
+    const { name, number } = req.body;
+    const persons = await Person.find({});
+    // prevent adding duplicated name
+    if (persons.find((e) => e.name === name)) {
+      res.status(400).json({ error: `${name} is already in the collection` });
+    } else {
+      const newPerson = new Person({ name, number });
+      const savedPerson = await newPerson.save();
+      res.json(savedPerson);
+    }
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.put('/api/persons/:id', async (req, res, next) => {
+  try {
+    const { name, number } = req.body;
+    const updatedPerson = await Person.findByIdAndUpdate(
+      req.params.id,
+      { name, number },
+      { new: true, runValidators: true, context: 'query' }
+    );
+    res.json(updatedPerson);
+  } catch (err) {
+    next(err);
+  }
 });
 
 app.use((req, res) => {
@@ -89,7 +102,9 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
   console.error(err.message);
   if (err.name === 'CastError') {
-    return res.status(400).send({ err: 'malformatted id' });
+    return res.status(400).json({ error: 'malformatted id' });
+  } else if (err.name === 'ValidationError') {
+    return res.status(400).json({ error: err.message });
   }
   next(err);
 });
